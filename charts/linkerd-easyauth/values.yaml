@@ -1,0 +1,23 @@
+---
+namespace: linkerd-easyauth
+
+nodeSelector: &default_node_selector
+  kubernetes.io/os: linux
+
+tolerations: &default_tolerations
+
+webhook:
+  image:
+    name: aatarasoff/linkerd-easyauth-webhook
+    version: 0.1.0
+    pullPolicy: IfNotPresent
+
+  logLevel: info
+
+  failurePolicy: Ignore
+
+  namespaceSelector:
+  objectSelector:
+
+  nodeSelector: *default_node_selector
+  tolerations: *default_tolerations
