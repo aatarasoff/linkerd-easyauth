@@ -31,13 +31,13 @@ apiVersion: policy.linkerd.io/v1beta1
 kind: Server
 metadata:
   namespace: <app-namespace>
-  name: linkerd-admin-port
+  name: <app-server-name>
   labels:
     linkerd.io/server-type: common
 spec:
   podSelector:
     matchLabels:
-      linkerd.io/easyauth: true
+      <app-label>: <app-unique-value>
   port: <my-port-name>
 ``` 
 
