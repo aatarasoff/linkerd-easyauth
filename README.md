@@ -1,7 +1,7 @@
 # Linkerd EasyAuth Extension
 
 ## Motivation
-Simplify the Linkerd Authorization Policies according to [the article](https://itnext.io/a-practical-guide-for-linkerd-authorization-policies-6cfdb50392e9) by giving a bunch of predefined policies and opinionated structures.
+Simplify the Linkerd Authorization Policies management according to [the article](https://itnext.io/a-practical-guide-for-linkerd-authorization-policies-6cfdb50392e9) by giving a bunch of predefined policies and opinionated structures.
 
 ## Supported versions
 - 2.11.x only
