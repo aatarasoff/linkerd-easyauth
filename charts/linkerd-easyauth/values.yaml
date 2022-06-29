@@ -14,10 +14,46 @@ webhook:
 
   logLevel: info
 
-  failurePolicy: Ignore
+  failurePolicy: Fail
 
   namespaceSelector:
   objectSelector:
 
   nodeSelector: *default_node_selector
   tolerations: *default_tolerations
+
+policies:
+  # allow healthchecks
+  kubelet:
+    # you should use more granular or generator
+    cidr:
+      - cidr: 0.0.0.0/0
+      - cidr: ::/0
+    # generate by pattern octet0:{low1-high1}:{low2-high2}:octet3 (10.169.150.1)
+    generator:
+#      octet0: 10
+#      low1: 168
+#      high1: 172
+#      low2: 0
+#      high2: 256
+#      octet3: 1
+
+  # linkerd sys namespaces should has access to proxy admin port
+  linkerd:
+    namespaces:
+      - linkerd
+      - linkerd-viz
+
+  # all namespaces with meshed apps (because policies are namespaced scope)
+  meshedApps:
+    namespaces: []
+
+  # policy for ingress
+  ingress:
+    enabled: false
+    namespace: ingress
+
+  # policy for monitoring (eg. prometheus)
+  monitoring:
+    enabled: false
+    namespace: monitoring
