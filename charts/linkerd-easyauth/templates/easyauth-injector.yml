@@ -1,0 +1,79 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    linkerd.io/extension: easyauth
+    app.kubernetes.io/name: easyauth-injector
+    app.kubernetes.io/part-of: Linkerd
+    app.kubernetes.io/version: {{.Values.webhook.image.version}}
+    component: easyauth-injector
+  name: easyauth-injector
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/extension: easyauth
+      component: easyauth-injector
+  template:
+    metadata:
+      labels:
+        linkerd.io/extension: easyauth
+        component: easyauth-injector
+    spec:
+      {{- if .Values.webhook.tolerations }}
+      tolerations:
+{{ toYaml .Values.webhook.tolerations | trim | indent 8 }}
+      {{- end }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | trim | indent 8 }}
+      containers:
+        - args:
+            - -log-level={{.Values.webhook.logLevel}}
+            - -enable-pprof={{.Values.enablePprof | default false}}
+          image: {{.Values.webhook.image.name}}:{{.Values.webhook.image.version}}
+          imagePullPolicy: {{.Values.webhook.image.pullPolicy}}
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: 9995
+            initialDelaySeconds: 10
+          name: easyauth-injector
+          ports:
+            - containerPort: 8443
+              name: easyauth-port
+            - containerPort: 9995
+              name: admin-http
+          readinessProbe:
+            failureThreshold: 7
+            httpGet:
+              path: /ready
+              port: 9995
+          volumeMounts:
+            - mountPath: /var/run/linkerd/tls
+              name: tls
+              readOnly: true
+      serviceAccountName: easyauth-injector
+      volumes:
+        - name: tls
+          secret:
+            secretName: easyauth-injector-k8s-tls
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: easyauth-injector
+  namespace: {{.Values.namespace}}
+  labels:
+    linkerd.io/extension: easyauth
+    component: easyauth-injector
+spec:
+  type: ClusterIP
+  selector:
+    linkerd.io/extension: easyauth
+    component: easyauth-injector
+  ports:
+    - name: easyauth-injector
+      port: 443
+      targetPort: easyauth-port

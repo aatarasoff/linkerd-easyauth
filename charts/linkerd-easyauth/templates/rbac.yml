@@ -1,0 +1,77 @@
+{{- $host := printf "easyauth-injector.%s.svc" .Values.namespace }}
+{{- $ca := genSelfSignedCert $host (list) (list $host) 365 }}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: easyauth-injector-k8s-tls
+  namespace: {{ .Values.namespace }}
+type: kubernetes.io/tls
+data:
+  tls.crt: {{ (b64enc (trim $ca.Cert)) }}
+  tls.key: {{ (b64enc (trim $ca.Key)) }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-easyauth-injector
+  labels:
+    linkerd.io/extension: easyauth
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: linkerd-easyauth-injector
+  labels:
+    linkerd.io/extension: easyauth
+subjects:
+  - kind: ServiceAccount
+    name: easyauth-injector
+    namespace: {{.Values.namespace}}
+    apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: linkerd-easyauth-injector
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: easyauth-injector
+  namespace: {{.Values.namespace}}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: linkerd-easyauth-injector-webhook-config
+  labels:
+    linkerd.io/extension: easyauth
+webhooks:
+  - name: easyauth-injector.linkerd.io
+    {{- if .Values.webhook.namespaceSelector }}
+    namespaceSelector:
+{{ toYaml .Values.webhook.namespaceSelector | trim | indent 4 -}}
+    {{- end }}
+    {{- if .Values.webhook.objectSelector }}
+    objectSelector:
+{{ toYaml .Values.webhook.objectSelector | trim | indent 4 -}}
+    {{- end }}
+    clientConfig:
+      service:
+        name: easyauth-injector
+        namespace: {{ .Values.namespace }}
+        path: "/"
+      caBundle: {{ (b64enc (trim $ca.Cert)) }}
+    failurePolicy: {{.Values.webhook.failurePolicy}}
+    admissionReviewVersions: ["v1", "v1beta1"]
+    reinvocationPolicy: IfNeeded
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    sideEffects: None

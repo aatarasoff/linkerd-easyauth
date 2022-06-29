@@ -1,0 +1,100 @@
+{{- range .Values.policies.meshedApps.namespaces }}
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  namespace: {{ . }}
+  name: linkerd-admin-port
+  labels:
+    linkerd.io/server-type: common
+spec:
+  podSelector:
+    matchLabels:
+      linkerd.io/easyauth: true
+  port: linkerd-admin
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  namespace: {{ . }}
+  name: app-serving-port
+  labels:
+    linkerd.io/server-type: common
+spec:
+  podSelector:
+    matchLabels:
+      linkerd.io/easyauth: true
+  port: linkerd-admin
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  namespace: {{ . }}
+  name: linkerd-admin-allow
+spec:
+  server:
+    name: linkerd-admin-port
+  client:
+    meshTLS:
+      identities:
+      {{- range $.Values.policies.linkerd.namespaces }}
+        - "*.{{ . }}.serviceaccount.identity.linkerd.cluster.local"
+      {{- end }}
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  namespace: {{ . }}
+  name: allow-healthchecks
+spec:
+  server:
+    selector:
+      matchLabels:
+        linkerd.io/server-type: common
+  client:
+    unauthenticated: true
+    networks:
+      {{- range $.Values.policies.kubelet.cidr }}
+      - cidr: {{ . }}
+      {{- end }}
+      {{- if $.Values.policies.kubelet.generator }}
+      {{- range $i, $e1 := untilStep (int $.Values.policies.kubelet.generator.low1) (int $.Values.policies.kubelet.generator.high1) 1 }}
+      {{- range $j, $e2 := untilStep (int $.Values.policies.kubelet.generator.low2) (int $.Values.policies.kubelet.generator.high2) 1 }}
+      - cidr: {{ $.Values.policies.kubelet.generator.octet0 }}.{{ $e1 }}.{{ $e2 }}.{{ $.Values.policies.kubelet.generator.octet3 }}/32
+      {{- end }}
+      {{- end }}
+      {{- end }}
+---
+{{- if $.Values.policies.monitoring.enabled }}
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  namespace: {{ . }}
+  name: linkerd-monitoring-allow
+spec:
+  server:
+    selector:
+      matchLabels:
+        linkerd.io/server-type: common
+  client:
+    meshTLS:
+      identities:
+        - "*.{{ $.Values.policies.monitoring.namespace }}.serviceaccount.identity.linkerd.cluster.local"
+{{ end }}
+{{- if $.Values.policies.ingress.enabled }}
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  namespace: {{ . }}
+  name: linkerd-ingress-allow
+spec:
+  server:
+    selector:
+      matchLabels:
+        linkerd.io/server-type: common
+  client:
+    meshTLS:
+      identities:
+        - "*.{{ $.Values.policies.ingress.namespace }}.serviceaccount.identity.linkerd.cluster.local"
+{{ end }}
+{{ end }}
