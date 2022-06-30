@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/fatih/color"
 	pkgcmd "github.com/linkerd/linkerd2/pkg/cmd"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -11,6 +12,9 @@ const (
 )
 
 var (
+	stdout = color.Output
+	stderr = color.Error
+
 	apiAddr               string
 	controlPlaneNamespace string
 	kubeconfigPath        string
@@ -37,6 +41,7 @@ func NewEasyAuthCmd() *cobra.Command {
 	}
 
 	easyAuthCmd.AddCommand(newCmdList())
+	easyAuthCmd.AddCommand(newCmdAuthCheck())
 
 	easyAuthCmd.PersistentFlags().StringVarP(&controlPlaneNamespace, "linkerd-namespace", "L", defaultLinkerdNamespace, "Namespace in which Linkerd is installed")
 	easyAuthCmd.PersistentFlags().StringVar(&kubeconfigPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests")
