@@ -7,6 +7,20 @@ Simplify the Linkerd Authorization Policies management according to [the article
 - 2.11.x only
 
 ## How to use it
+
+## CLI
+Grab latest binaries from the releases page: https://github.com/aatarasoff/linkerd-easyauth/releases.
+
+### Usage
+```
+linkerd easyauth [COMMAND] -n <namespace> [FLAGS]
+```
+
+### Supported commands
+- `authcheck`: checks for obsolete `Server` and `ServerAuthorization` resources, checks that PODs ports have `Server` resource
+- `list`: list of Pods that were injected by `linkerd.io/easyauth-enabled: true` annotation (more information below)
+
+## Helm chart
 Install the helm chart with injector and policies:
 ```
 > kubectl create ns linkerd-easyauth
@@ -74,12 +88,4 @@ If you cannot do it but you have GKE-like pattern then you can define octets and
       low2: 0
       high2: 256
       octet3: 1
-```
-
-## CLI
-Linkerd EasyAuth CLI is under construction. You can install it by cloning the repo and `go install` command.
-
-### Usage
-```
-linkerd easyauth [COMMAND]
 ```
