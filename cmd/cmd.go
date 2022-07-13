@@ -42,6 +42,7 @@ func NewEasyAuthCmd() *cobra.Command {
 
 	easyAuthCmd.AddCommand(newCmdList())
 	easyAuthCmd.AddCommand(newCmdAuthCheck())
+	easyAuthCmd.AddCommand(newCmdAuthz())
 
 	easyAuthCmd.PersistentFlags().StringVarP(&controlPlaneNamespace, "linkerd-namespace", "L", defaultLinkerdNamespace, "Namespace in which Linkerd is installed")
 	easyAuthCmd.PersistentFlags().StringVar(&kubeconfigPath, "kubeconfig", "", "Path to the kubeconfig file to use for CLI requests")

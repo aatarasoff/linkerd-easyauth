@@ -19,6 +19,7 @@ linkerd easyauth [COMMAND] -n <namespace> [FLAGS]
 ### Supported commands
 - `authcheck`: checks for obsolete `Server` and `ServerAuthorization` resources, checks that PODs ports have `Server` resource
 - `list`: list of Pods that were injected by `linkerd.io/easyauth-enabled: true` annotation (more information below)
+- `authz`: fast implementation for fetch the list server authorizations for a resource (use caching)
 
 ## Helm chart
 Install the helm chart with injector and policies:
@@ -69,14 +70,14 @@ meshedApps:
 Because of [the issue](https://github.com/linkerd/linkerd2/issues/7050), you should explicitly provide CIDR for kubelet.
 It depends on the K8s implementation you are using.
 
-There are two possibity. If you can define CIDR granually then you can use it
+There are two possibility. If you can define CIDR precisely then you can use it
 ```
   kubelet:
     cidr:
       - cidr: 10.164.0.0/20
 ```
 
-If you cannot do it but you have GKE-like pattern then you can define octets and ranges for generation the bunch of `/32` CIDR:
+If you cannot do it, but you have GKE-like pattern then you can define octets and ranges for generation the bunch of `/32` CIDR:
 ```
   kubelet:
     cidr: []
