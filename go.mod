@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/fatih/color v1.13.0
-	github.com/linkerd/linkerd2 v0.5.1-0.20220421143608-d7a3ddf4bf41
+	github.com/linkerd/linkerd2 v0.5.1-0.20220713201044-7b3ebd22d57b
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.4.0
 	k8s.io/api v0.21.3
