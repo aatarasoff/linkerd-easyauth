@@ -41,30 +41,6 @@ spec:
         - "*.{{ . }}.serviceaccount.identity.linkerd.cluster.local"
       {{- end }}
 ---
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
-metadata:
-  namespace: {{ . }}
-  name: allow-healthchecks
-spec:
-  server:
-    selector:
-      matchLabels:
-        linkerd.io/server-type: common
-  client:
-    unauthenticated: true
-    networks:
-      {{- range $.Values.policies.kubelet.cidr }}
-      - cidr: {{ . }}
-      {{- end }}
-      {{- if $.Values.policies.kubelet.generator }}
-      {{- range $i, $e1 := untilStep (int $.Values.policies.kubelet.generator.low1) (int $.Values.policies.kubelet.generator.high1) 1 }}
-      {{- range $j, $e2 := untilStep (int $.Values.policies.kubelet.generator.low2) (int $.Values.policies.kubelet.generator.high2) 1 }}
-      - cidr: {{ $.Values.policies.kubelet.generator.octet0 }}.{{ $e1 }}.{{ $e2 }}.{{ $.Values.policies.kubelet.generator.octet3 }}/32
-      {{- end }}
-      {{- end }}
-      {{- end }}
----
 {{- if $.Values.policies.monitoring.enabled }}
 apiVersion: policy.linkerd.io/v1beta1
 kind: ServerAuthorization

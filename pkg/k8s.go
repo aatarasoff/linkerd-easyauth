@@ -13,13 +13,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func ServerAuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, serverAuthorizations []*serverauthorizationv1beta1.ServerAuthorization, servers []*serverv1beta1.Server, namespace string, resource string) ([]k8s.ServerAndAuthorization, error) {
+func ServerAuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, serverAuthorizations []*serverauthorizationv1beta1.ServerAuthorization, servers []*serverv1beta1.Server, namespace string, resource string) ([]k8s.Authorization, error) {
 	pods, err := k8s.GetPodsFor(ctx, k8sAPI, namespace, resource)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]k8s.ServerAndAuthorization, 0)
+	results := make([]k8s.Authorization, 0)
 
 	for _, saz := range serverAuthorizations {
 		var selectedServers []serverv1beta1.Server
@@ -55,7 +55,7 @@ func ServerAuthorizationsForResource(ctx context.Context, k8sAPI *k8s.Kubernetes
 			}
 
 			if serverIncludesPod(server, selectedPods) {
-				results = append(results, k8s.ServerAndAuthorization{server.GetName(), saz.GetName()})
+				results = append(results, k8s.Authorization{Server: server.GetName(), ServerAuthorization: saz.GetName()})
 			}
 		}
 	}

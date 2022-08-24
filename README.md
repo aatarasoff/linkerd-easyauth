@@ -4,7 +4,12 @@
 Simplify the Linkerd Authorization Policies management according to [the article](https://itnext.io/a-practical-guide-for-linkerd-authorization-policies-6cfdb50392e9) by giving a bunch of predefined policies and opinionated structures.
 
 ## Supported versions
-- 2.11.x only
+| Linkerd Version | EasyAuth Version |
+|-----------------|------------------|
+| 2.11.x          | 0.1.0 - 0.4.0    |
+| 2.12.x          | \>= 0.5.0        |
+
+New `AuthorizationPolicy` and `HTTPRoute` are in WIP. Their support will be soon.
 
 ## How to use it
 
@@ -35,7 +40,7 @@ Install the helm chart with injector and policies:
 ### What the helm chart provides
 - Injector that adds `linkerd.io/easyauth-enabled: true` label for all meshed pods (you can limit namespaces via helmchart)
 - `Server` in terms of Linkerd authorization policies for `linkerd-admin-port`
-- `ServerAuthorization` resources that provides basic allow policies for kubelet, ingress, Linkerd itself, and monitoring
+- `ServerAuthorization` resources that provides basic allow policies for ingress, Linkerd itself, and monitoring
 
 ### What the helm chart does not provide
 Because the `Server` should be one per service per port, we can define the server for the linkerd proxy admin port only.
@@ -67,7 +72,9 @@ meshedApps:
 ```
 
 #### Kubelet CIDR
-Because of [the issue](https://github.com/linkerd/linkerd2/issues/7050), you should explicitly provide CIDR for kubelet.
+> **⚠ WARNING: 2.11.x only**  
+
+Because of [the issue](https://github.com/linkerd/linkerd2/issues/7050), in 2.11.x version of Linkerd you should explicitly provide CIDR for kubelet.
 It depends on the K8s implementation you are using.
 
 There are two possibility. If you can define CIDR precisely then you can use it
