@@ -3,8 +3,9 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/linkerd/linkerd2/controller/gen/apis/server/v1beta1"
-	beta1 "github.com/linkerd/linkerd2/controller/gen/apis/serverauthorization/v1beta1"
+	policy "github.com/linkerd/linkerd2/controller/gen/apis/policy/v1alpha1"
+	server "github.com/linkerd/linkerd2/controller/gen/apis/server/v1beta1"
+	saz "github.com/linkerd/linkerd2/controller/gen/apis/serverauthorization/v1beta1"
 	l5dcrdinformer "github.com/linkerd/linkerd2/controller/gen/client/informers/externalversions"
 	pkgK8s "github.com/linkerd/linkerd2/controller/k8s"
 	"github.com/linkerd/linkerd2/pkg/k8s"
@@ -17,10 +18,11 @@ import (
 )
 
 type K8sResources struct {
-	Pods                 *v1.PodList
-	Services             *v1.ServiceList
-	Servers              []*v1beta1.Server
-	ServerAuthorizations []*beta1.ServerAuthorization
+	Pods                  *v1.PodList
+	Services              *v1.ServiceList
+	Servers               []*server.Server
+	ServerAuthorizations  []*saz.ServerAuthorization
+	AuthorizationPolicies []*policy.AuthorizationPolicy
 }
 
 func FetchK8sResources(ctx context.Context, namespace string) (*K8sResources, error) {
@@ -51,11 +53,17 @@ func FetchK8sResources(ctx context.Context, namespace string) (*K8sResources, er
 		return nil, err
 	}
 
+	authorizationPolicies, err := lr5dAPI.Policy().V1alpha1().AuthorizationPolicies().Lister().AuthorizationPolicies(namespace).List(labels.NewSelector())
+	if err != nil {
+		return nil, err
+	}
+
 	return &K8sResources{
-		Pods:                 pods,
-		Services:             services,
-		Servers:              servers,
-		ServerAuthorizations: serverAuthorizations,
+		Pods:                  pods,
+		Services:              services,
+		Servers:               servers,
+		ServerAuthorizations:  serverAuthorizations,
+		AuthorizationPolicies: authorizationPolicies,
 	}, nil
 }
 
@@ -77,6 +85,9 @@ func initServerAPI(kubeconfigPath string) l5dcrdinformer.SharedInformerFactory {
 	stopCh := make(chan struct{})
 	go lr5dAPI.Server().V1beta1().Servers().Informer().Run(stopCh)
 	go lr5dAPI.Serverauthorization().V1beta1().ServerAuthorizations().Informer().Run(stopCh)
+	go lr5dAPI.Policy().V1alpha1().AuthorizationPolicies().Informer().Run(stopCh)
+	go lr5dAPI.Policy().V1alpha1().MeshTLSAuthentications().Informer().Run(stopCh)
+	go lr5dAPI.Policy().V1alpha1().NetworkAuthentications().Informer().Run(stopCh)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

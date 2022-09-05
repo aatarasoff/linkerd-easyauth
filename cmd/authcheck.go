@@ -83,13 +83,14 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 	checkers := []healthcheck.Checker{}
 
 	checkers = append(checkers,
-		*healthcheck.NewChecker("linkerd-easyauth no Server without ServerAuthorizations").
+		*healthcheck.NewChecker("linkerd-easyauth no Server without authorization policies").
 			Warning().
 			WithCheck(func(ctx context.Context) error {
 				serversWOServerAuthorizations := []string{}
 
 				for _, server := range resources.Servers {
 					founded := false
+
 					for _, serverAuthorization := range resources.ServerAuthorizations {
 						selector, err := metav1.LabelSelectorAsSelector(serverAuthorization.Spec.Server.Selector)
 						if err != nil {
@@ -105,19 +106,30 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 						}
 					}
 
+					for _, policy := range resources.AuthorizationPolicies {
+						// namespaced policies applies on each server
+						if policy.Spec.TargetRef.Kind == "Namespace" {
+							founded = true
+						}
+
+						if string(policy.Spec.TargetRef.Name) == server.GetName() {
+							founded = true
+						}
+					}
+
 					if !founded {
-						serversWOServerAuthorizations = append(serversWOServerAuthorizations, fmt.Sprintf("Server %s has no ServerAuthorizarions", server.GetName()))
+						serversWOServerAuthorizations = append(serversWOServerAuthorizations, fmt.Sprintf("Server %s has no authorization policies", server.GetName()))
 					}
 				}
 
 				if len(serversWOServerAuthorizations) == 0 {
 					return nil
 				}
-				return fmt.Errorf("Some servers have no ServerAuthorizations:\n\t%s", strings.Join(serversWOServerAuthorizations, "\n\t"))
+				return fmt.Errorf("Some servers have no authorization policies:\n\t%s", strings.Join(serversWOServerAuthorizations, "\n\t"))
 			}))
 
 	checkers = append(checkers,
-		*healthcheck.NewChecker("linkerd-easyauth no ServerAuthorizations without Server").
+		*healthcheck.NewChecker("linkerd-easyauth no authorization policies without Server").
 			Warning().
 			WithCheck(func(ctx context.Context) error {
 				serverAuthorizationsWOServer := []string{}
@@ -140,7 +152,26 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 					}
 
 					if !founded {
-						serverAuthorizationsWOServer = append(serverAuthorizationsWOServer, fmt.Sprintf("ServerAuthorizarions %s do not apply to any Server", serverAuthorization.GetName()))
+						serverAuthorizationsWOServer = append(serverAuthorizationsWOServer, fmt.Sprintf("ServerAuthorizarions %s does not apply to any Server", serverAuthorization.GetName()))
+					}
+				}
+
+				for _, policy := range resources.AuthorizationPolicies {
+					founded := false
+
+					if policy.Spec.TargetRef.Kind == "Namespace" {
+						// at least one Server should exist
+						founded = len(resources.Servers) > 0
+					} else {
+						for _, server := range resources.Servers {
+							if policy.Spec.TargetRef.Kind == "Server" && (string(policy.Spec.TargetRef.Name) == server.GetName()) {
+								founded = true
+							}
+						}
+					}
+
+					if !founded {
+						serverAuthorizationsWOServer = append(serverAuthorizationsWOServer, fmt.Sprintf("Authorization Policy %s does not apply to any Server", policy.GetName()))
 					}
 				}
 
