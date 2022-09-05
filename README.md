@@ -9,7 +9,9 @@ Simplify the Linkerd Authorization Policies management according to [the article
 | 2.11.x          | 0.1.0 - 0.4.0    |
 | 2.12.x          | \>= 0.5.0        |
 
-New `AuthorizationPolicy` and `HTTPRoute` are in WIP. Their support will be soon.
+New `AuthorizationPolicy` are supported since `0.6.0`.
+
+New `HTTPRoute` are in WIP. Its support will be soon.
 
 ## How to use it
 
@@ -22,7 +24,7 @@ linkerd easyauth [COMMAND] -n <namespace> [FLAGS]
 ```
 
 ### Supported commands
-- `authcheck`: checks for obsolete `Server` and `ServerAuthorization` resources, checks that PODs ports have `Server` resource
+- `authcheck`: checks for obsolete `Server` and policies resources like `ServerAuthorization` and `AuthorizationPolicy`, checks that PODs ports have `Server` resource
 - `list`: list of Pods that were injected by `linkerd.io/easyauth-enabled: true` annotation (more information below)
 - `authz`: fast implementation for fetch the list server authorizations for a resource (use caching)
 
@@ -40,7 +42,7 @@ Install the helm chart with injector and policies:
 ### What the helm chart provides
 - Injector that adds `linkerd.io/easyauth-enabled: true` label for all meshed pods (you can limit namespaces via helmchart)
 - `Server` in terms of Linkerd authorization policies for `linkerd-admin-port`
-- `ServerAuthorization` resources that provides basic allow policies for ingress, Linkerd itself, and monitoring
+- `AuthorizationPolicy` resources that provides basic allow policies for ingress, Linkerd itself, and monitoring
 
 ### What the helm chart does not provide
 Because the `Server` should be one per service per port, we can define the server for the linkerd proxy admin port only.
@@ -63,7 +65,7 @@ spec:
 
 ### Important Values
 #### Meshed Apps Namespaces
-Because all `ServerAuthorization` policies are Namespaced scope then we should add common policies to each namespace with our apps:
+Because all `AuthorizationPolicy` policies are Namespaced scope then we should add common policies to each namespace with our apps:
 ```
 meshedApps:
   namespaces:

@@ -5,72 +5,87 @@ kind: Server
 metadata:
   namespace: {{ . }}
   name: linkerd-admin-port
-  labels:
-    linkerd.io/server-type: common
 spec:
   podSelector:
     matchLabels:
-      linkerd.io/easyauth: true
+      linkerd.io/easyauth: "true"
   port: linkerd-admin
 ---
-apiVersion: policy.linkerd.io/v1beta1
-kind: Server
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
 metadata:
   namespace: {{ . }}
-  name: app-serving-port
-  labels:
-    linkerd.io/server-type: common
+  name: linkerd-authn
 spec:
-  podSelector:
-    matchLabels:
-      linkerd.io/easyauth: true
-  port: linkerd-admin
+  identities:
+  {{- range $.Values.policies.linkerd.namespaces }}
+    - "*.{{ . }}.serviceaccount.identity.linkerd.cluster.local"
+  {{- end }}
 ---
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
 metadata:
   namespace: {{ . }}
   name: linkerd-admin-allow
 spec:
-  server:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
     name: linkerd-admin-port
-  client:
-    meshTLS:
-      identities:
-      {{- range $.Values.policies.linkerd.namespaces }}
-        - "*.{{ . }}.serviceaccount.identity.linkerd.cluster.local"
-      {{- end }}
----
+  requiredAuthenticationRefs:
+    - name: linkerd-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
 {{- if $.Values.policies.monitoring.enabled }}
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  namespace: {{ . }}
+  name: monitoring-authn
+spec:
+  identities:
+    - "*.{{ $.Values.policies.monitoring.namespace }}.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
 metadata:
   namespace: {{ . }}
   name: linkerd-monitoring-allow
 spec:
-  server:
-    selector:
-      matchLabels:
-        linkerd.io/server-type: common
-  client:
-    meshTLS:
-      identities:
-        - "*.{{ $.Values.policies.monitoring.namespace }}.serviceaccount.identity.linkerd.cluster.local"
+  targetRef:
+    group: core
+    kind: Namespace
+    name: {{ . }}
+  requiredAuthenticationRefs:
+    - name: monitoring-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
 {{ end }}
 {{- if $.Values.policies.ingress.enabled }}
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  namespace: {{ . }}
+  name: ingress-authn
+spec:
+  identities:
+    - "*.{{ $.Values.policies.ingress.namespace }}.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
 metadata:
   namespace: {{ . }}
   name: linkerd-ingress-allow
 spec:
-  server:
-    selector:
-      matchLabels:
-        linkerd.io/server-type: common
-  client:
-    meshTLS:
-      identities:
-        - "*.{{ $.Values.policies.ingress.namespace }}.serviceaccount.identity.linkerd.cluster.local"
+  targetRef:
+    group: core
+    kind: Namespace
+    name: {{ . }}
+  requiredAuthenticationRefs:
+    - name: ingress-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
 {{ end }}
 {{ end }}
