@@ -9,9 +9,9 @@ Simplify the Linkerd Authorization Policies management according to [the article
 | 2.11.x          | 0.1.0 - 0.4.0    |
 | 2.12.x          | \>= 0.5.0        |
 
-New `AuthorizationPolicy` are supported since `0.6.0`.
+New `AuthorizationPolicy` is supported since `0.6.0`.
 
-New `HTTPRoute` are in WIP. Its support will be soon.
+New `HTTPRoute` is in WIP. Its support will be soon.
 
 ## How to use it
 
