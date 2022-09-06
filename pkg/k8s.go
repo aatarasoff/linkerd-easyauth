@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	policies "github.com/linkerd/linkerd2/controller/gen/apis/policy/v1alpha1"
 	"github.com/linkerd/linkerd2/pkg/k8s"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,7 +14,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func ServerAuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, serverAuthorizations []*serverauthorizationv1beta1.ServerAuthorization, servers []*serverv1beta1.Server, namespace string, resource string) ([]k8s.Authorization, error) {
+type authCandidate struct {
+	Server        serverv1beta1.Server
+	Authorization k8s.Authorization
+}
+
+func AuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, policies []*policies.AuthorizationPolicy, serverAuthorizations []*serverauthorizationv1beta1.ServerAuthorization, servers []*serverv1beta1.Server, namespace string, resource string) ([]k8s.Authorization, error) {
 	pods, err := k8s.GetPodsFor(ctx, k8sAPI, namespace, resource)
 	if err != nil {
 		return nil, err
@@ -21,9 +27,9 @@ func ServerAuthorizationsForResource(ctx context.Context, k8sAPI *k8s.Kubernetes
 
 	results := make([]k8s.Authorization, 0)
 
-	for _, saz := range serverAuthorizations {
-		var selectedServers []serverv1beta1.Server
+	var candidates []authCandidate
 
+	for _, saz := range serverAuthorizations {
 		for _, srv := range servers {
 			selector, err := metav1.LabelSelectorAsSelector(saz.Spec.Server.Selector)
 			if err != nil {
@@ -32,33 +38,56 @@ func ServerAuthorizationsForResource(ctx context.Context, k8sAPI *k8s.Kubernetes
 			}
 
 			if selector.Matches(labels.Set(srv.GetLabels())) || saz.Spec.Server.Name == srv.GetName() {
-				selectedServers = append(selectedServers, *srv)
-			}
-		}
-
-		for _, server := range selectedServers {
-			if server.Spec.PodSelector == nil {
-				continue
-			}
-
-			selector, err := metav1.LabelSelectorAsSelector(server.Spec.PodSelector)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to create selector: %s\n", err)
-				os.Exit(1)
-			}
-
-			var selectedPods []corev1.Pod
-			for _, pod := range pods {
-				if selector.Matches(labels.Set(pod.Labels)) {
-					selectedPods = append(selectedPods, pod)
+				authorization := k8s.Authorization{
+					Server:              srv.GetName(),
+					ServerAuthorization: saz.GetName(),
+					AuthorizationPolicy: "",
 				}
-			}
-
-			if serverIncludesPod(server, selectedPods) {
-				results = append(results, k8s.Authorization{Server: server.GetName(), ServerAuthorization: saz.GetName()})
+				candidates = append(candidates, authCandidate{Server: *srv, Authorization: authorization})
 			}
 		}
 	}
+
+	for _, policy := range policies {
+		target := policy.Spec.TargetRef
+		if target.Kind == "Namespace" || (target.Kind == k8s.ServerKind && target.Group == k8s.PolicyAPIGroup) {
+			for _, srv := range servers {
+				if target.Kind == "Namespace" || (string(target.Name) == srv.GetName()) {
+					authorization := k8s.Authorization{
+						Server:              srv.GetName(),
+						ServerAuthorization: "",
+						AuthorizationPolicy: policy.GetName(),
+					}
+					candidates = append(candidates, authCandidate{Server: *srv, Authorization: authorization})
+				}
+			}
+		}
+	}
+
+	for _, candidate := range candidates {
+		server := candidate.Server
+		if server.Spec.PodSelector == nil {
+			continue
+		}
+
+		selector, err := metav1.LabelSelectorAsSelector(server.Spec.PodSelector)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to create selector: %s\n", err)
+			os.Exit(1)
+		}
+
+		var selectedPods []corev1.Pod
+		for _, pod := range pods {
+			if selector.Matches(labels.Set(pod.Labels)) {
+				selectedPods = append(selectedPods, pod)
+			}
+		}
+
+		if serverIncludesPod(server, selectedPods) {
+			results = append(results, candidate.Authorization)
+		}
+	}
+
 	return results, nil
 }
 

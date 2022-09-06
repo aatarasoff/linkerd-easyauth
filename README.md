@@ -26,7 +26,7 @@ linkerd easyauth [COMMAND] -n <namespace> [FLAGS]
 ### Supported commands
 - `authcheck`: checks for obsolete `Server` and policies resources like `ServerAuthorization` and `AuthorizationPolicy`, checks that PODs ports have `Server` resource
 - `list`: list of Pods that were injected by `linkerd.io/easyauth-enabled: true` annotation (more information below)
-- `authz`: fast implementation for fetch the list server authorizations for a resource (use caching)
+- `authz`: fast implementation for fetch the list authorization policies for a resource (use caching)
 
 ## Helm chart
 Install the helm chart with injector and policies:

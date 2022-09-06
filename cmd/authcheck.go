@@ -164,7 +164,7 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 						founded = len(resources.Servers) > 0
 					} else {
 						for _, server := range resources.Servers {
-							if policy.Spec.TargetRef.Kind == "Server" && (string(policy.Spec.TargetRef.Name) == server.GetName()) {
+							if policy.Spec.TargetRef.Kind == k8s.ServerKind && (string(policy.Spec.TargetRef.Name) == server.GetName()) {
 								founded = true
 							}
 						}
