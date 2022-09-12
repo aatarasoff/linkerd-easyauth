@@ -99,21 +99,38 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 
 						if selector.Matches(labels.Set(server.GetLabels())) {
 							founded = true
+							break
 						}
 
 						if serverAuthorization.Spec.Server.Name == server.GetName() {
 							founded = true
+							break
 						}
 					}
 
-					for _, policy := range resources.AuthorizationPolicies {
-						// namespaced policies applies on each server
-						if policy.Spec.TargetRef.Kind == "Namespace" {
-							founded = true
-						}
+					if !founded {
+						for _, policy := range resources.AuthorizationPolicies {
+							// namespaced policies applies on each server
+							if policy.Spec.TargetRef.Kind == "Namespace" && policy.GetNamespace() == server.Namespace {
+								founded = true
+								break
+							}
 
-						if string(policy.Spec.TargetRef.Name) == server.GetName() {
-							founded = true
+							if policy.Spec.TargetRef.Kind == k8s.ServerKind && string(policy.Spec.TargetRef.Name) == server.GetName() {
+								founded = true
+								break
+							}
+
+							if policy.Spec.TargetRef.Kind == k8s.HTTPRouteKind {
+								for _, httpRoute := range resources.HTTPRoutes {
+									for _, targetRef := range httpRoute.Spec.ParentRefs {
+										if *targetRef.Kind == k8s.ServerKind && string(targetRef.Name) == server.GetName() && string(policy.Spec.TargetRef.Name) == httpRoute.GetName() {
+											founded = true
+											break
+										}
+									}
+								}
+							}
 						}
 					}
 
@@ -166,6 +183,20 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 						for _, server := range resources.Servers {
 							if policy.Spec.TargetRef.Kind == k8s.ServerKind && (string(policy.Spec.TargetRef.Name) == server.GetName()) {
 								founded = true
+								break
+							}
+						}
+
+						for _, httpRoute := range resources.HTTPRoutes {
+							if policy.Spec.TargetRef.Kind == k8s.HTTPRouteKind {
+								for _, server := range resources.Servers {
+									for _, targetRef := range httpRoute.Spec.ParentRefs {
+										if *targetRef.Kind == k8s.ServerKind && string(targetRef.Name) == server.GetName() && string(policy.Spec.TargetRef.Name) == httpRoute.GetName() {
+											founded = true
+											break
+										}
+									}
+								}
 							}
 						}
 					}
@@ -179,6 +210,43 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 					return nil
 				}
 				return fmt.Errorf("Obsolete ServerAuthorizations:\n\t%s", strings.Join(serverAuthorizationsWOServer, "\n\t"))
+			}))
+
+	checkers = append(checkers,
+		*healthcheck.NewChecker("linkerd-easyauth no obsolete HTTPRoutes").
+			Warning().
+			WithCheck(func(ctx context.Context) error {
+				httpRoutesWithObsoleteTargetRef := []string{}
+
+				for _, httpRoute := range resources.HTTPRoutes {
+					for _, targetRef := range httpRoute.Spec.ParentRefs {
+						founded := false
+
+						if *targetRef.Kind == k8s.ServerKind {
+							for _, server := range resources.Servers {
+								if string(targetRef.Name) == server.GetName() {
+									founded = true
+									break
+								}
+							}
+						}
+
+						if !founded {
+							httpRoutesWithObsoleteTargetRef = append(
+								httpRoutesWithObsoleteTargetRef,
+								fmt.Sprintf("TargetRef %s in HTTPPolicy %s is obsolete (eg. doesn't apply to any Server",
+									string(targetRef.Name),
+									httpRoute.GetName(),
+								),
+							)
+						}
+					}
+				}
+
+				if len(httpRoutesWithObsoleteTargetRef) == 0 {
+					return nil
+				}
+				return fmt.Errorf("Some HTTPRoutes have obsolete targetRef:\n\t%s", strings.Join(httpRoutesWithObsoleteTargetRef, "\n\t"))
 			}))
 
 	checkers = append(checkers,
