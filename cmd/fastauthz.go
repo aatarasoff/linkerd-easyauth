@@ -43,17 +43,22 @@ func newCmdAuthz() *cobra.Command {
 
 			k8sAPI, err := k8s.NewAPI(kubeconfigPath, kubeContext, impersonate, impersonateGroup, 0)
 
-			authzs, err := common.AuthorizationsForResource(cmd.Context(), k8sAPI, prefetched.AuthorizationPolicies, prefetched.ServerAuthorizations, prefetched.Servers, options.namespace, resource)
+			authzs, err := common.AuthorizationsForResource(cmd.Context(), k8sAPI, prefetched.AuthorizationPolicies, prefetched.HTTPRoutes, prefetched.ServerAuthorizations, prefetched.Servers, options.namespace, resource)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to get serverauthorization resources: %s\n", err)
 				os.Exit(1)
 			}
 
 			for _, authz := range authzs {
-				rows = append(rows, table.Row{authz.Server, authz.ServerAuthorization, authz.AuthorizationPolicy})
+				route := "*"
+				if authz.Route != "" {
+					route = authz.Route
+				}
+				rows = append(rows, table.Row{route, authz.Server, authz.ServerAuthorization, authz.AuthorizationPolicy})
 			}
 
 			cols := []table.Column{
+				{Header: "ROUTE", Width: 10, Flexible: true},
 				{Header: "SERVER", Width: 10, Flexible: true},
 				{Header: "SERVER_AUTHORIZATION", Width: 21, Flexible: true},
 				{Header: "AUTHORIZATION_POLICY", Width: 21, Flexible: true},
