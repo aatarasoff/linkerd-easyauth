@@ -3,15 +3,15 @@
 ## Motivation
 Simplify the Linkerd Authorization Policies management according to [the article](https://itnext.io/a-practical-guide-for-linkerd-authorization-policies-6cfdb50392e9) by giving a bunch of predefined policies and opinionated structures.
 
+Special checkers to find obsolete resources and misconfigurations, plus ultra-fast `authz` command implementation (up to 10x faster than original one).
+
 ## Supported versions
 | Linkerd Version | EasyAuth Version |
 |-----------------|------------------|
 | 2.11.x          | 0.1.0 - 0.4.0    |
 | 2.12.x          | \>= 0.5.0        |
 
-New `AuthorizationPolicy` is supported since `0.6.0`.
-
-New `HTTPRoute` is in WIP. Its support will be soon.
+New `AuthorizationPolicy` is supported since `0.6.0`.  New `HTTPRoute` is supported since `0.8.0`
 
 ## How to use it
 
@@ -24,7 +24,7 @@ linkerd easyauth [COMMAND] -n <namespace> [FLAGS]
 ```
 
 ### Supported commands
-- `authcheck`: checks for obsolete `Server` and policies resources like `ServerAuthorization` and `AuthorizationPolicy`, checks that PODs ports have `Server` resource
+- `authcheck`: checks for obsolete `Server` and policies resources like `ServerAuthorization`, `AuthorizationPolicy`, and `HTTPRoute`, checks that PODs ports have `Server` resource
 - `list`: list of Pods that were injected by `linkerd.io/easyauth-enabled: true` annotation (more information below)
 - `authz`: fast implementation for fetch the list authorization policies for a resource (use caching)
 
