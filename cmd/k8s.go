@@ -23,6 +23,7 @@ type K8sResources struct {
 	Servers               []*server.Server
 	ServerAuthorizations  []*saz.ServerAuthorization
 	AuthorizationPolicies []*policy.AuthorizationPolicy
+	HTTPRoutes            []*policy.HTTPRoute
 }
 
 func FetchK8sResources(ctx context.Context, namespace string) (*K8sResources, error) {
@@ -58,12 +59,18 @@ func FetchK8sResources(ctx context.Context, namespace string) (*K8sResources, er
 		return nil, err
 	}
 
+	httpRoutes, err := lr5dAPI.Policy().V1alpha1().HTTPRoutes().Lister().HTTPRoutes(namespace).List(labels.NewSelector())
+	if err != nil {
+		return nil, err
+	}
+
 	return &K8sResources{
 		Pods:                  pods,
 		Services:              services,
 		Servers:               servers,
 		ServerAuthorizations:  serverAuthorizations,
 		AuthorizationPolicies: authorizationPolicies,
+		HTTPRoutes:            httpRoutes,
 	}, nil
 }
 
@@ -88,6 +95,7 @@ func initServerAPI(kubeconfigPath string) l5dcrdinformer.SharedInformerFactory {
 	go lr5dAPI.Policy().V1alpha1().AuthorizationPolicies().Informer().Run(stopCh)
 	go lr5dAPI.Policy().V1alpha1().MeshTLSAuthentications().Informer().Run(stopCh)
 	go lr5dAPI.Policy().V1alpha1().NetworkAuthentications().Informer().Run(stopCh)
+	go lr5dAPI.Policy().V1alpha1().HTTPRoutes().Informer().Run(stopCh)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
