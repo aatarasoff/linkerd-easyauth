@@ -19,7 +19,7 @@ type authCandidate struct {
 	Authorization k8s.Authorization
 }
 
-func AuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, policies []*policies.AuthorizationPolicy, serverAuthorizations []*serverauthorizationv1beta1.ServerAuthorization, servers []*serverv1beta1.Server, namespace string, resource string) ([]k8s.Authorization, error) {
+func AuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, policies []*policies.AuthorizationPolicy, httpRoutes []*policies.HTTPRoute, serverAuthorizations []*serverauthorizationv1beta1.ServerAuthorization, servers []*serverv1beta1.Server, namespace string, resource string) ([]k8s.Authorization, error) {
 	pods, err := k8s.GetPodsFor(ctx, k8sAPI, namespace, resource)
 	if err != nil {
 		return nil, err
@@ -59,6 +59,26 @@ func AuthorizationsForResource(ctx context.Context, k8sAPI *k8s.KubernetesAPI, p
 						AuthorizationPolicy: policy.GetName(),
 					}
 					candidates = append(candidates, authCandidate{Server: *srv, Authorization: authorization})
+				}
+			}
+		}
+
+		if target.Kind == k8s.HTTPRouteKind {
+			for _, httpRoute := range httpRoutes {
+				for _, targetRef := range httpRoute.Spec.ParentRefs {
+					if *targetRef.Kind == k8s.ServerKind {
+						for _, srv := range servers {
+							if *targetRef.Kind == k8s.ServerKind && string(targetRef.Name) == srv.GetName() && string(policy.Spec.TargetRef.Name) == httpRoute.GetName() {
+								authorization := k8s.Authorization{
+									Route:               httpRoute.Name,
+									Server:              srv.GetName(),
+									ServerAuthorization: "",
+									AuthorizationPolicy: policy.GetName(),
+								}
+								candidates = append(candidates, authCandidate{Server: *srv, Authorization: authorization})
+							}
+						}
+					}
 				}
 			}
 		}
