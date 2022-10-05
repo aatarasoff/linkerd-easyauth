@@ -88,4 +88,22 @@ spec:
       kind: MeshTLSAuthentication
       group: policy.linkerd.io
 {{ end }}
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: NetworkAuthentication
+metadata:
+  name: cluster-network-authn
+  namespace: {{ . }}
+spec:
+  networks:
+    {{- range $.Values.policies.clusterNetwork.cidr }}
+    - cidr: {{ . }}
+    {{- end }}
+    {{- if $.Values.policies.clusterNetwork.generator }}
+    {{- range $i, $e1 := untilStep (int $.Values.policies.clusterNetwork.generator.low1) (int $.Values.policies.clusterNetwork.generator.high1) 1 }}
+    {{- range $j, $e2 := untilStep (int $.Values.policies.clusterNetwork.generator.low2) (int $.Values.policies.clusterNetwork.generator.high2) 1 }}
+    - cidr: {{ $.Values.policies.clusterNetwork.generator.octet0 }}.{{ $e1 }}.{{ $e2 }}.{{ $.Values.policies.clusterNetwork.generator.octet3 }}/32
+    {{- end }}
+    {{- end }}
+    {{- end }}
 {{ end }}

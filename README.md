@@ -73,6 +73,29 @@ meshedApps:
     - elephants
 ```
 
+#### Cluster Network Common Policy
+In case of using route-based policy you should authorize requests for passing probes by adding app-specific `HTTPRoute` and policies for it for each app:
+```yaml
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: cool-app-health-check-allow
+  namespace: cool-ns
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: HTTPRoute
+    name: cool-app-health-check
+  requiredAuthenticationRefs:
+    - name: cluster-network-authn
+      kind: NetworkAuthentication
+      group: policy.linkerd.io
+```
+
+The Helm chart generates NetworkAuthentication with name `cluster-network-authn` to authorize cluster network requests.
+
+You should explicitly provide cluster network or authorize kubelet only. It depends on the K8s implementation you are using and could be setup via `clusterNetwork` section in the values.
+
 #### Kubelet CIDR
 > **⚠ WARNING: 2.11.x only**  
 
