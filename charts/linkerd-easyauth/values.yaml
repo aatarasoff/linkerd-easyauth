@@ -9,7 +9,7 @@ tolerations: &default_tolerations
 webhook:
   image:
     name: aatarasoff/linkerd-easyauth-webhook
-    version: 0.8.0
+    version: 0.9.0
     pullPolicy: IfNotPresent
 
   # modify to HA mode
