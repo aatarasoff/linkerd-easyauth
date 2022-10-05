@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -234,7 +235,7 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 						if !founded {
 							httpRoutesWithObsoleteTargetRef = append(
 								httpRoutesWithObsoleteTargetRef,
-								fmt.Sprintf("TargetRef %s in HTTPPolicy %s is obsolete (eg. doesn't apply to any Server",
+								fmt.Sprintf("TargetRef %s in HTTPPolicy %s is obsolete (eg. doesn't apply to any Server)",
 									string(targetRef.Name),
 									httpRoute.GetName(),
 								),
@@ -269,6 +270,50 @@ func easyAuthCategory(resources *K8sResources) *healthcheck.Category {
 					return nil
 				}
 				return fmt.Errorf("Some pods have ports that are not covered by Server:\n\t%s", strings.Join(portsWOServers, "\n\t"))
+			}))
+
+	checkers = append(checkers,
+		*healthcheck.NewChecker("linkerd-easyauth no obsolete authentications").
+			Warning().
+			WithCheck(func(ctx context.Context) error {
+				var authentications []metav1.Object
+				var obsoleteAuthentications []string
+
+				for _, authn := range resources.MeshTLSAuthentications {
+					authentications = append(authentications, authn)
+				}
+
+				for _, authn := range resources.NetworkAuthentications {
+					authentications = append(authentications, authn)
+				}
+
+				for _, authn := range authentications {
+					founded := false
+
+					for _, policy := range resources.AuthorizationPolicies {
+						for _, targetRef := range policy.Spec.RequiredAuthenticationRefs {
+							if string(targetRef.Name) == authn.GetName() {
+								founded = true
+								break
+							}
+						}
+					}
+
+					if !founded {
+						obsoleteAuthentications = append(
+							obsoleteAuthentications,
+							fmt.Sprintf("%s %s is obsolete",
+								strings.Split(reflect.TypeOf(authn).String(), ".")[1],
+								authn.GetName(),
+							),
+						)
+					}
+				}
+
+				if len(obsoleteAuthentications) == 0 {
+					return nil
+				}
+				return fmt.Errorf("Some authentications are obsolete (eg. doesn't apply to any policy):\n\t%s", strings.Join(obsoleteAuthentications, "\n\t"))
 			}))
 
 	return healthcheck.NewCategory(linkerdEasyAuthExtensionCheck, checkers, true)

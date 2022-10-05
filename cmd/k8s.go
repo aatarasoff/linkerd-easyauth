@@ -18,12 +18,14 @@ import (
 )
 
 type K8sResources struct {
-	Pods                  *v1.PodList
-	Services              *v1.ServiceList
-	Servers               []*server.Server
-	ServerAuthorizations  []*saz.ServerAuthorization
-	AuthorizationPolicies []*policy.AuthorizationPolicy
-	HTTPRoutes            []*policy.HTTPRoute
+	Pods                   *v1.PodList
+	Services               *v1.ServiceList
+	Servers                []*server.Server
+	ServerAuthorizations   []*saz.ServerAuthorization
+	AuthorizationPolicies  []*policy.AuthorizationPolicy
+	HTTPRoutes             []*policy.HTTPRoute
+	MeshTLSAuthentications []*policy.MeshTLSAuthentication
+	NetworkAuthentications []*policy.NetworkAuthentication
 }
 
 func FetchK8sResources(ctx context.Context, namespace string) (*K8sResources, error) {
@@ -64,13 +66,25 @@ func FetchK8sResources(ctx context.Context, namespace string) (*K8sResources, er
 		return nil, err
 	}
 
+	meshTLSAuthentications, err := lr5dAPI.Policy().V1alpha1().MeshTLSAuthentications().Lister().MeshTLSAuthentications(namespace).List(labels.NewSelector())
+	if err != nil {
+		return nil, err
+	}
+
+	newtworkAuthentications, err := lr5dAPI.Policy().V1alpha1().NetworkAuthentications().Lister().NetworkAuthentications(namespace).List(labels.NewSelector())
+	if err != nil {
+		return nil, err
+	}
+
 	return &K8sResources{
-		Pods:                  pods,
-		Services:              services,
-		Servers:               servers,
-		ServerAuthorizations:  serverAuthorizations,
-		AuthorizationPolicies: authorizationPolicies,
-		HTTPRoutes:            httpRoutes,
+		Pods:                   pods,
+		Services:               services,
+		Servers:                servers,
+		ServerAuthorizations:   serverAuthorizations,
+		AuthorizationPolicies:  authorizationPolicies,
+		HTTPRoutes:             httpRoutes,
+		MeshTLSAuthentications: meshTLSAuthentications,
+		NetworkAuthentications: newtworkAuthentications,
 	}, nil
 }
 
