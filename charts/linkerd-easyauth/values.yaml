@@ -9,7 +9,7 @@ tolerations: &default_tolerations
 webhook:
   image:
     name: aatarasoff/linkerd-easyauth-webhook
-    version: 0.6.0
+    version: 0.8.0
     pullPolicy: IfNotPresent
 
   # modify to HA mode
@@ -45,3 +45,19 @@ policies:
   monitoring:
     enabled: false
     namespace: monitoring
+
+  # authorize cluster network
+  clusterNetwork:
+    # simple implementation
+    cidr:
+      - 0.0.0.0/0
+      - ::/0
+    # generate by pattern octet0:{low1-high1}:{low2-high2}:octet3 (10.169.150.1)
+    # typical use case: GKE kubelet
+    generator:
+#      octet0: 10
+#      low1: 168
+#      high1: 172
+#      low2: 0
+#      high2: 256
+#      octet3: 1
