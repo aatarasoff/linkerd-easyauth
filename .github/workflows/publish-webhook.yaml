@@ -3,7 +3,7 @@ name: Publish Docker image
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
   push_to_registries:
@@ -28,10 +28,19 @@ jobs:
           images: |
             aatarasoff/linkerd-easyauth-webhook
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v3
+      - name: Set up docker buildx
+        uses: docker/setup-buildx-action@v3
         with:
-          file: ./injector/Dockerfile
+          version: latest
+
+      - name: Build docker image
+        uses: docker/build-push-action@v5
+        with:
+          file: injector/Dockerfile
+          context: injector
+          platforms: linux/amd64, linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -39,7 +39,7 @@ linkerd easyauth [COMMAND] -n <namespace> [FLAGS]
 
 Install the helm chart with injector and policies:
 
-```
+```bash
 > kubectl create ns linkerd-easyauth
 
 # Edit namespace and add standard linkerd annotations
@@ -59,7 +59,7 @@ Install the helm chart with injector and policies:
 Because the `Server` should be one per service per port, we can define the server for the linkerd proxy admin port only.
 For each port that should be used by other pods, or Linkerd you should add the server definition manually:
 
-```
+```yaml
 ---
 apiVersion: policy.linkerd.io/v1beta1
 kind: Server
@@ -122,23 +122,23 @@ It depends on the K8s implementation you are using.
 
 There are two possibility. If you can define CIDR precisely then you can use it
 
-```
-  kubelet:
-    cidr:
-      - cidr: 10.164.0.0/20
+```yaml
+kubelet:
+  cidr:
+    - cidr: 10.164.0.0/20
 ```
 
 If you cannot do it, but you have GKE-like pattern then you can define octets and ranges for generation the bunch of `/32` CIDR:
 
-```
-  kubelet:
-    cidr: []
-    # generate by pattern octet0:{low1-high1}:{low2-high2}:octet3 (10.169.150.1)
-    generator:
-      octet0: 10
-      low1: 168
-      high1: 172
-      low2: 0
-      high2: 256
-      octet3: 1
+```yaml
+kubelet:
+  cidr: []
+  # generate by pattern octet0:{low1-high1}:{low2-high2}:octet3 (10.169.150.1)
+  generator:
+    octet0: 10
+    low1: 168
+    high1: 172
+    low2: 0
+    high2: 256
+    octet3: 1
 ```
