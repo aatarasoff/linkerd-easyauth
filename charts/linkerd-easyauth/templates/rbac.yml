@@ -1,4 +1,5 @@
 {{- $host := printf "easyauth-injector.%s.svc" .Values.namespace }}
+{{- if not (lookup "v1" "Secret" .Release.Namespace "easyauth-injector-k8s-tls") }}
 {{- $ca := genSelfSignedCert $host (list) (list $host) 365 }}
 ---
 kind: Secret
@@ -10,6 +11,7 @@ type: kubernetes.io/tls
 data:
   tls.crt: {{ (b64enc (trim $ca.Cert)) }}
   tls.key: {{ (b64enc (trim $ca.Key)) }}
+{{- end }}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
